@@ -1,6 +1,7 @@
 import re
 
 from django import http
+from django.core.urlresolvers import resolve
 
 try:
     from urlparse import urlparse
@@ -50,9 +51,23 @@ class CorsMiddleware(object):
         """
         Get which hosts are allowed to interact with this URL.
         """
-        for url_pattern, url_settings in settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX.items():
-            if re.match(url_pattern, request.path):
-                return url_settings
+        try:
+            return settings.CORS_ALLOWED_HOSTS_PER_URL_NAME[resolve(request.path)]
+        except KeyError:
+            return {
+                'CORS_ORIGIN_ALLOW_ALL': settings.CORS_ORIGIN_ALLOW_ALL,
+                'CORS_ORIGIN_WHITELIST': settings.CORS_ORIGIN_WHITELIST,
+                'CORS_ORIGIN_REGEX_WHITELIST': settings.CORS_ORIGIN_REGEX_WHITELIST
+            }
+
+    def _cors_origin_allow_all(self, request):
+        return self._settings_for_this(request)['CORS_ORIGIN_ALLOW_ALL']
+
+    def _cors_origin_whitelist(self, request):
+        return self._settings_for_this(request)['CORS_ORIGIN_WHITELIST']
+
+    def _cors_origin_regex_whitelist(self, request):
+        return self._settings_for_this(request)['CORS_ORIGIN_REGEX_WHITELIST']
 
     def _https_referer_replace(self, request):
         """
@@ -62,13 +77,12 @@ class CorsMiddleware(object):
         succeeds
         """
         origin = request.META.get('HTTP_ORIGIN')
-        custom_settings = self._settings_for_this(request)
 
         if (request.is_secure() and origin and
                     'ORIGINAL_HTTP_REFERER' not in request.META):
             url = urlparse(origin)
-            if (not custom_settings['ALL_ALLOWED'] and
-                    self.origin_not_found_in_white_lists(origin, url, custom_settings['WHITELIST'])):
+            if (not self._cors_origin_allow_all(request) and
+                    self.origin_not_found_in_white_lists(origin, url, request)):
                 return
 
             try:
@@ -111,8 +125,6 @@ class CorsMiddleware(object):
         """
         Add the respective CORS headers
         """
-        custom_settings = self._settings_for_this(request)
-
         origin = request.META.get('HTTP_ORIGIN')
         if self.is_enabled(request) and origin:
             # todo: check hostname from db instead
@@ -123,12 +135,12 @@ class CorsMiddleware(object):
                 if model.objects.filter(cors=url.netloc).exists():
                     response[ACCESS_CONTROL_ALLOW_ORIGIN] = origin
 
-            if (not custom_settings['ALL_ALLOWED'] and
-                    self.origin_not_found_in_white_lists(origin, url, custom_settings['WHITELIST'])):
+            if (not self._cors_origin_allow_all(request) and
+                    self.origin_not_found_in_white_lists(origin, url, request)):
                 return response
 
             response[ACCESS_CONTROL_ALLOW_ORIGIN] = "*" if (
-                custom_settings['ALL_ALLOWED'] and
+                self._cors_origin_allow_all(request) and
                 not settings.CORS_ALLOW_CREDENTIALS) else origin
 
             if len(settings.CORS_EXPOSE_HEADERS):
@@ -149,12 +161,12 @@ class CorsMiddleware(object):
 
         return response
 
-    def origin_not_found_in_white_lists(self, origin, url, whitelist):
-        return (url.netloc not in whitelist and
-                not self.regex_domain_match(origin, whitelist))
+    def origin_not_found_in_white_lists(self, origin, url, request):
+        return (url.netloc not in self._cors_origin_whitelist(request) and
+                not self.regex_domain_match(origin, request))
 
-    def regex_domain_match(self, origin, whitelist):
-        for domain_pattern in whitelist:
+    def regex_domain_match(self, origin, request):
+        for domain_pattern in self._cors_origin_regex_whitelist(request):
             if re.match(domain_pattern, origin):
                 return origin
 
