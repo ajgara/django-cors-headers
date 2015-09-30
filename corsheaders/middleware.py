@@ -113,7 +113,7 @@ class CorsMiddleware(object):
             return response
         return None
 
-    def process_view(self, request):
+    def process_view(self, request, callback, callback_args, callback_kwargs):
         """
         Do the referer replacement here as well
         """
