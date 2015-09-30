@@ -46,6 +46,13 @@ class CorsPostCsrfMiddleware(object):
 
 
 class CorsMiddleware(object):
+    def _settings_for_this(self, request):
+        """
+        Get which hosts are allowed to interact with this URL.
+        """
+        for url_pattern, url_settings in settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX.items():
+            if re.match(url_pattern, request.path):
+                return url_settings
 
     def _https_referer_replace(self, request):
         """
@@ -55,11 +62,12 @@ class CorsMiddleware(object):
         succeeds
         """
         origin = request.META.get('HTTP_ORIGIN')
+        custom_settings = self._settings_for_this(request)
 
         if (request.is_secure() and origin and
                 'ORIGINAL_HTTP_REFERER' not in request.META):
             url = urlparse(origin)
-            if (not settings.CORS_ORIGIN_ALLOW_ALL and
+            if (not custom_settings['ALL_ALLOWED'] and
                     self.origin_not_found_in_white_lists(origin, url)):
                 return
 
@@ -103,6 +111,8 @@ class CorsMiddleware(object):
         """
         Add the respective CORS headers
         """
+        custom_settings = self._settings_for_this(request)
+
         origin = request.META.get('HTTP_ORIGIN')
         if self.is_enabled(request) and origin:
             # todo: check hostname from db instead
@@ -113,12 +123,12 @@ class CorsMiddleware(object):
                 if model.objects.filter(cors=url.netloc).exists():
                     response[ACCESS_CONTROL_ALLOW_ORIGIN] = origin
 
-            if (not settings.CORS_ORIGIN_ALLOW_ALL and
-                    self.origin_not_found_in_white_lists(origin, url)):
+            if (not custom_settings['ALL_ALLOWED'] and
+                    self.origin_not_found_in_white_lists(origin, url, custom_settings['WHITELIST'])):
                 return response
 
             response[ACCESS_CONTROL_ALLOW_ORIGIN] = "*" if (
-                settings.CORS_ORIGIN_ALLOW_ALL and
+                custom_settings['ALL_ALLOWED'] and
                 not settings.CORS_ALLOW_CREDENTIALS) else origin
 
             if len(settings.CORS_EXPOSE_HEADERS):
@@ -139,12 +149,12 @@ class CorsMiddleware(object):
 
         return response
 
-    def origin_not_found_in_white_lists(self, origin, url):
-        return (url.netloc not in settings.CORS_ORIGIN_WHITELIST and
-                not self.regex_domain_match(origin))
+    def origin_not_found_in_white_lists(self, origin, url, whitelist):
+        return (url.netloc not in whitelist and
+                not self.regex_domain_match(origin, whitelist))
 
-    def regex_domain_match(self, origin):
-        for domain_pattern in settings.CORS_ORIGIN_REGEX_WHITELIST:
+    def regex_domain_match(self, origin, whitelist):
+        for domain_pattern in whitelist:
             if re.match(domain_pattern, origin):
                 return origin
 
