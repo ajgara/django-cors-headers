@@ -319,6 +319,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ORIGIN_ALLOW_ALL = False
         settings.CORS_ALLOW_METHODS = ['OPTIONS']
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_NAME = {}
         response = HttpResponse()
         request_headers = {'HTTP_ORIGIN': 'http://foo.google.com'}
         request = Mock(path='/', META=request_headers, method='OPTIONS')
@@ -334,6 +335,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ALLOW_METHODS = settings.default_methods
         settings.CORS_URLS_REGEX = '^.*$'
         settings.CORS_MODEL = 'corsheaders.CorsModel'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_NAME = {}
         response = HttpResponse()
         request = Mock(path='/', META={'HTTP_ORIGIN': 'http://foo.google.com'})
         processed = self.middleware.process_response(request, response)
