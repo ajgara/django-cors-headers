@@ -52,7 +52,7 @@ class CorsMiddleware(object):
         Get which hosts are allowed to interact with this URL.
         """
         try:
-            return settings.CORS_ALLOWED_HOSTS_PER_URL_NAME[resolve(request.path)]
+            return settings.CORS_ALLOWED_HOSTS_PER_URL_NAME[resolve(request.path).url_name]
         except KeyError:
             return {
                 'CORS_ORIGIN_ALLOW_ALL': settings.CORS_ORIGIN_ALLOW_ALL,
