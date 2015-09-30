@@ -72,7 +72,8 @@ class TestCorsMiddlewareProcessRequest(TestCase):
         }
         with settings_override(CORS_URLS_REGEX='^.*$',
                                CORS_ORIGIN_REGEX_WHITELIST='.*google.*',
-                               CORS_REPLACE_HTTPS_REFERER=True):
+                               CORS_REPLACE_HTTPS_REFERER=True,
+                               CORS_ALLOWED_HOSTS_PER_URL_REGEX={'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': '.*.google.*'}}):
             response = self.middleware.process_request(request)
         self.assertIsNone(response)
 
@@ -83,7 +84,8 @@ class TestCorsMiddlewareProcessRequest(TestCase):
         }
         with settings_override(CORS_URLS_REGEX='^.*$',
                                CORS_ORIGIN_REGEX_WHITELIST='.*google.*',
-                               CORS_REPLACE_HTTPS_REFERER=True):
+                               CORS_REPLACE_HTTPS_REFERER=True,
+                               CORS_ALLOWED_HOSTS_PER_URL_REGEX={'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': '.*.google.*'}}):
             response = self.middleware.process_request(request)
         self.assertIsNone(response)
 
@@ -97,7 +99,8 @@ class TestCorsMiddlewareProcessRequest(TestCase):
         # test that we won't replace if the request is not secure
         with settings_override(CORS_URLS_REGEX='^.*$',
                                CORS_ORIGIN_REGEX_WHITELIST='.*google.*',
-                               CORS_REPLACE_HTTPS_REFERER=True):
+                               CORS_REPLACE_HTTPS_REFERER=True,
+                               CORS_ALLOWED_HOSTS_PER_URL_REGEX={'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': '.*.google.*'}}):
             response = self.middleware.process_request(request)
         self.assertIsNone(response)
         self.assertTrue('ORIGINAL_HTTP_REFERER' not in request.META)
@@ -112,7 +115,8 @@ class TestCorsMiddlewareProcessRequest(TestCase):
 
         # test that we won't replace with the setting off
         with settings_override(CORS_URLS_REGEX='^.*$',
-                               CORS_ORIGIN_REGEX_WHITELIST='.*google.*'):
+                               CORS_ORIGIN_REGEX_WHITELIST='.*google.*',
+                               CORS_ALLOWED_HOSTS_PER_URL_REGEX={'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': '.*.google.*'}}):
             response = self.middleware.process_request(request)
         self.assertIsNone(response)
         self.assertTrue('ORIGINAL_HTTP_REFERER' not in request.META)
@@ -120,7 +124,8 @@ class TestCorsMiddlewareProcessRequest(TestCase):
 
         with settings_override(CORS_URLS_REGEX='^.*$',
                                CORS_ORIGIN_REGEX_WHITELIST='.*google.*',
-                               CORS_REPLACE_HTTPS_REFERER=True):
+                               CORS_REPLACE_HTTPS_REFERER=True,
+                               CORS_ALLOWED_HOSTS_PER_URL_REGEX={'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': '.*.google.*'}}):
             response = self.middleware.process_request(request)
         self.assertIsNone(response)
         self.assertEquals(request.META['ORIGINAL_HTTP_REFERER'], 'https://foo.google.com/')
@@ -129,7 +134,8 @@ class TestCorsMiddlewareProcessRequest(TestCase):
         # make sure the replace code is idempotent
         with settings_override(CORS_URLS_REGEX='^.*$',
                                CORS_ORIGIN_REGEX_WHITELIST='.*google.*',
-                               CORS_REPLACE_HTTPS_REFERER=True):
+                               CORS_REPLACE_HTTPS_REFERER=True,
+                               CORS_ALLOWED_HOSTS_PER_URL_REGEX={'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': '.*.google.*'}}):
             response = self.middleware.process_view(request, None, None, None)
         self.assertIsNone(response)
         self.assertEquals(request.META['ORIGINAL_HTTP_REFERER'], 'https://foo.google.com/')
@@ -156,7 +162,8 @@ class TestCorsMiddlewareProcessRequest(TestCase):
         }
         with settings_override(CORS_URLS_REGEX='^.*$',
                                CORS_ORIGIN_REGEX_WHITELIST='.*google.*',
-                               CORS_REPLACE_HTTPS_REFERER=True):
+                               CORS_REPLACE_HTTPS_REFERER=True,
+                               CORS_ALLOWED_HOSTS_PER_URL_REGEX={'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': '.*.google.*'}}):
             response = self.middleware.process_view(request, None, None, None)
         self.assertIsNone(response)
         self.assertEquals(request.META['ORIGINAL_HTTP_REFERER'], 'https://foo.google.com/')
@@ -196,6 +203,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ORIGIN_ALLOW_ALL = False
         settings.CORS_ORIGIN_WHITELIST = ['example.com']
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': ['example.com']}}
         response = HttpResponse()
         request = Mock(path='/', META={'HTTP_ORIGIN': 'http://foobar.it'})
         processed = self.middleware.process_response(request, response)
@@ -206,6 +214,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ORIGIN_ALLOW_ALL = False
         settings.CORS_ORIGIN_WHITELIST = ['example.com', 'foobar.it']
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': ['example.com', 'foobar.it']}}
         response = HttpResponse()
         request = Mock(path='/', META={'HTTP_ORIGIN': 'http://foobar.it'})
         processed = self.middleware.process_response(request, response)
@@ -216,6 +225,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ORIGIN_ALLOW_ALL = True
         settings.CORS_EXPOSE_HEADERS = ['accept', 'origin', 'content-type']
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': True, 'WHITELIST': []}}
         response = HttpResponse()
         request = Mock(path='/', META={'HTTP_ORIGIN': 'http://example.com'})
         processed = self.middleware.process_response(request, response)
@@ -227,6 +237,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ORIGIN_ALLOW_ALL = True
         settings.CORS_EXPOSE_HEADERS = []
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': True, 'WHITELIST': []}}
         response = HttpResponse()
         request = Mock(path='/', META={'HTTP_ORIGIN': 'http://example.com'})
         processed = self.middleware.process_response(request, response)
@@ -237,6 +248,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ORIGIN_ALLOW_ALL = True
         settings.CORS_ALLOW_CREDENTIALS = True
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': True, 'WHITELIST': []}}
         response = HttpResponse()
         request = Mock(path='/', META={'HTTP_ORIGIN': 'http://example.com'})
         processed = self.middleware.process_response(request, response)
@@ -247,6 +259,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ORIGIN_ALLOW_ALL = True
         settings.CORS_ALLOW_CREDENTIALS = False
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': True, 'WHITELIST': []}}
         response = HttpResponse()
         request = Mock(path='/', META={'HTTP_ORIGIN': 'http://example.com'})
         processed = self.middleware.process_response(request, response)
@@ -259,6 +272,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ALLOW_METHODS = ['GET', 'OPTIONS']
         settings.CORS_PREFLIGHT_MAX_AGE = 1002
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': True, 'WHITELIST': []}}
         response = HttpResponse()
         request_headers = {'HTTP_ORIGIN': 'http://example.com'}
         request = Mock(path='/', META=request_headers, method='OPTIONS')
@@ -275,6 +289,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ALLOW_METHODS = ['GET', 'OPTIONS']
         settings.CORS_PREFLIGHT_MAX_AGE = 0
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': True, 'WHITELIST': []}}
         response = HttpResponse()
         request_headers = {'HTTP_ORIGIN': 'http://example.com'}
         request = Mock(path='/', META=request_headers, method='OPTIONS')
@@ -290,6 +305,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ALLOW_METHODS = ['OPTIONS']
         settings.CORS_ORIGIN_WHITELIST = ('localhost:9000',)
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': ('localhost:9000',)}}
         response = HttpResponse()
         request_headers = {'HTTP_ORIGIN': 'http://localhost:9000'}
         request = Mock(path='/', META=request_headers, method='OPTIONS')
@@ -303,6 +319,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ORIGIN_ALLOW_ALL = False
         settings.CORS_ALLOW_METHODS = ['OPTIONS']
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': ('^http?://(\w+\.)?google\.com$', )}}
         response = HttpResponse()
         request_headers = {'HTTP_ORIGIN': 'http://foo.google.com'}
         request = Mock(path='/', META=request_headers, method='OPTIONS')
@@ -316,6 +333,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ORIGIN_ALLOW_ALL = False
         settings.CORS_ALLOW_METHODS = ['OPTIONS']
         settings.CORS_URLS_REGEX = '^.*$'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': ('^http?://(\w+\.)?yahoo\.com$', )}}
         response = HttpResponse()
         request_headers = {'HTTP_ORIGIN': 'http://foo.google.com'}
         request = Mock(path='/', META=request_headers, method='OPTIONS')
@@ -331,6 +349,7 @@ class TestCorsMiddlewareProcessResponse(TestCase):
         settings.CORS_ALLOW_METHODS = settings.default_methods
         settings.CORS_URLS_REGEX = '^.*$'
         settings.CORS_MODEL = 'corsheaders.CorsModel'
+        settings.CORS_ALLOWED_HOSTS_PER_URL_REGEX = {'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': ()}}
         response = HttpResponse()
         request = Mock(path='/', META={'HTTP_ORIGIN': 'http://foo.google.com'})
         processed = self.middleware.process_response(request, response)
