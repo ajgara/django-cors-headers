@@ -136,7 +136,7 @@ class TestCorsMiddlewareProcessRequest(TestCase):
                                CORS_ORIGIN_REGEX_WHITELIST='.*google.*',
                                CORS_REPLACE_HTTPS_REFERER=True,
                                CORS_ALLOWED_HOSTS_PER_URL_REGEX={'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': '.*.google.*'}}):
-            response = self.middleware.process_view(request, None, None, None)
+            response = self.middleware.process_view(request)
         self.assertIsNone(response)
         self.assertEquals(request.META['ORIGINAL_HTTP_REFERER'], 'https://foo.google.com/')
         self.assertEquals(request.META['HTTP_REFERER'], 'https://foobar.com/')
@@ -164,7 +164,7 @@ class TestCorsMiddlewareProcessRequest(TestCase):
                                CORS_ORIGIN_REGEX_WHITELIST='.*google.*',
                                CORS_REPLACE_HTTPS_REFERER=True,
                                CORS_ALLOWED_HOSTS_PER_URL_REGEX={'^.*$': {'ALL_ALLOWED': False, 'WHITELIST': '.*.google.*'}}):
-            response = self.middleware.process_view(request, None, None, None)
+            response = self.middleware.process_view(request)
         self.assertIsNone(response)
         self.assertEquals(request.META['ORIGINAL_HTTP_REFERER'], 'https://foo.google.com/')
         self.assertEquals(request.META['HTTP_REFERER'], 'https://foobar.com/')

@@ -1,6 +1,7 @@
 import re
 
 from django import http
+
 try:
     from urlparse import urlparse
 except ImportError:
@@ -8,12 +9,12 @@ except ImportError:
 
 try:
     from django.apps import apps
+
     get_model = apps.get_model
 except ImportError:
     from django.db.models.loading import get_model
 
 from corsheaders import defaults as settings
-
 
 ACCESS_CONTROL_ALLOW_ORIGIN = 'Access-Control-Allow-Origin'
 ACCESS_CONTROL_EXPOSE_HEADERS = 'Access-Control-Expose-Headers'
@@ -24,14 +25,13 @@ ACCESS_CONTROL_MAX_AGE = 'Access-Control-Max-Age'
 
 
 class CorsPostCsrfMiddleware(object):
-
     def _https_referer_replace_reverse(self, request):
         """
         Put the HTTP_REFERER back to its original value and delete the
         temporary storage
         """
         if (settings.CORS_REPLACE_HTTPS_REFERER and
-                'ORIGINAL_HTTP_REFERER' in request.META):
+                    'ORIGINAL_HTTP_REFERER' in request.META):
             http_referer = request.META['ORIGINAL_HTTP_REFERER']
             request.META['HTTP_REFERER'] = http_referer
             del request.META['ORIGINAL_HTTP_REFERER']
@@ -65,10 +65,10 @@ class CorsMiddleware(object):
         custom_settings = self._settings_for_this(request)
 
         if (request.is_secure() and origin and
-                'ORIGINAL_HTTP_REFERER' not in request.META):
+                    'ORIGINAL_HTTP_REFERER' not in request.META):
             url = urlparse(origin)
             if (not custom_settings['ALL_ALLOWED'] and
-                    self.origin_not_found_in_white_lists(origin, url)):
+                    self.origin_not_found_in_white_lists(origin, url, custom_settings['WHITELIST'])):
                 return
 
             try:
@@ -93,13 +93,13 @@ class CorsMiddleware(object):
             self._https_referer_replace(request)
 
         if (self.is_enabled(request) and
-                request.method == 'OPTIONS' and
-                "HTTP_ACCESS_CONTROL_REQUEST_METHOD" in request.META):
+                    request.method == 'OPTIONS' and
+                    "HTTP_ACCESS_CONTROL_REQUEST_METHOD" in request.META):
             response = http.HttpResponse()
             return response
         return None
 
-    def process_view(self, request, callback, callback_args, callback_kwargs):
+    def process_view(self, request):
         """
         Do the referer replacement here as well
         """
